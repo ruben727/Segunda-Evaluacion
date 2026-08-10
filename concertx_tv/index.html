@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self';
+             script-src 'self' https://fonts.googleapis.com;
+             style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com;
+             font-src https://fonts.gstatic.com;
+             connect-src 'self' http://localhost:3000 ws://localhost:3000;
+             img-src 'self' data:;
+             media-src 'self'" />
+  <title>Concertx TV</title>
+  <meta name="description" content="Panel de sincronización de luces para conciertos — Smart TV" />
+  <meta name="theme-color" content="#3B82F6" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/tv.css" />
+</head>
+<body>
+  <!-- ------------------------------ Top bar ------------------------------ -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="note">♪</span>
+      <span>Concertx</span>
+    </div>
+    <div class="topbar-pill" id="event-pill">Evan Craft · Arena Ciudad de México · Código: ------</div>
+    <div class="topbar-live">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span>EN VIVO</span>
+      <span class="topbar-time" id="header-time">--:--</span>
+    </div>
+  </header>
+
+  <!-- ---------------------------- Dashboard ------------------------------ -->
+  <main class="dashboard">
+    <section class="left-column">
+
+      <!-- Card 1 — Usuarios conectados -->
+      <article class="card" id="card-users" data-focusable data-card="users" tabindex="-1">
+        <p class="card-label">Usuarios conectados</p>
+        <p class="user-count" id="user-count">0</p>
+        <p class="user-count-suffix">en el recinto</p>
+        <div class="sync-row">
+          <span class="sync-label">Sincronización total</span>
+          <span class="sync-value" id="sync-percent">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="sync-progress" style="width: 0%"></div>
+        </div>
+      </article>
+
+      <!-- Card 2 — Canción actual -->
+      <article class="card" id="card-song" data-focusable data-card="song" tabindex="-1">
+        <p class="card-label">Canción actual</p>
+        <div class="song-row">
+          <div class="album-art" aria-hidden="true">♦</div>
+          <div class="song-info">
+            <p class="song-title" id="song-title">Otro Nivel</p>
+            <p class="song-artist" id="song-artist">Evan Craft</p>
+          </div>
+        </div>
+        <div class="song-progress-track">
+          <div class="song-progress-fill" id="song-progress" style="width: 55%"></div>
+        </div>
+        <div class="song-time-row">
+          <span id="song-time-current">02:14</span>
+          <span id="song-time-total">04:03</span>
+        </div>
+      </article>
+
+      <!-- Card 3 — Efecto activo -->
+      <article class="card card-effect" id="card-effect" data-focusable data-card="effect" tabindex="-1">
+        <p class="card-label">Efecto activo</p>
+        <div class="effect-circle" id="effect-circle">
+          <span class="effect-label" id="effect-label">AZUL</span>
+        </div>
+      </article>
+    </section>
+
+    <!-- --------------------------- Mapa del estadio ------------------------ -->
+    <section class="right-column">
+      <div class="stadium-wrap">
+        <span class="compass-label compass-norte">Norte</span>
+        <span class="compass-label compass-sur">Sur</span>
+        <span class="compass-label compass-poniente">Poniente</span>
+
+        <div class="center-line" aria-hidden="true"></div>
+
+        <div class="stadium-ring ring-outer" aria-hidden="true"></div>
+        <div class="stadium-ring ring-middle" aria-hidden="true"></div>
+        <div class="stadium-ring ring-inner" aria-hidden="true"></div>
+
+        <div class="stage">
+          <span class="stage-label">ESCENARIO</span>
+          <span class="stage-dots">···</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script src="js/dpnav.js"></script>
+  <script src="js/sw-register.js"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self';
+             script-src 'self' https://fonts.googleapis.com;
+             style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com;
+             font-src https://fonts.gstatic.com;
+             connect-src 'self' http://localhost:3000 ws://localhost:3000;
+             img-src 'self' data:;
+             media-src 'self'" />
+  <title>Concertx TV — Asientos</title>
+  <meta name="theme-color" content="#3B82F6" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/tv.css" />
+</head>
+<body>
+  <!-- ------------------------------ Top bar ------------------------------ -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="note">♪</span>
+      <span>Concertx</span>
+    </div>
+    <div class="topbar-pill">Evan Craft · Arena Ciudad de México · 20:00h</div>
+    <div class="topbar-live">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span>EN VIVO</span>
+      <span class="topbar-time" id="header-time">--:--</span>
+    </div>
+  </header>
+
+  <main class="seats-main">
+    <a href="index.html" class="nav-button nav-to-panel" id="nav-to-panel" data-focusable tabindex="-1">
+      ← Volver al panel
+    </a>
+
+    <h1 class="seats-title">Selección de asientos</h1>
+    <p class="seats-subtitle">
+      <span class="legend-blue">Azul</span>
+      <span>= usuario conectado</span>
+      <span class="sep">|</span>
+      <span class="legend-dark">Oscuro</span>
+      <span>= disponible</span>
+    </p>
+
+    <div class="seat-grid" id="seat-grid" aria-label="Mapa de asientos del recinto"></div>
+  </main>
+
+  <script src="js/seats.js"></script>
+  <script src="js/dpnav.js"></script>
+  <script src="js/sw-register.js"></script>
+</body>
+</html>

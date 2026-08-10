@@ -1,0 +1,24 @@
+{
+  "name": "Concertx TV",
+  "short_name": "ConcertxTV",
+  "description": "Sistema de sincronización de luces para conciertos",
+  "start_url": "/index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0D1F3C",
+  "theme_color": "#3B82F6",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

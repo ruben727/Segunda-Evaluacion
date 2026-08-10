@@ -1,0 +1,88 @@
+########################################
+# Concertx — .gitignore raíz
+# Aplica a todo el monorepo (backend, concertx_movil, concertx_wearable,
+# concertx_tv). Los subproyectos también traen su propio .gitignore con
+# reglas específicas de Flutter/Android; este archivo cubre, sobre todo,
+# todo lo sensible (credenciales, .env, llaves) para que nunca se suba a
+# GitHub por accidente.
+########################################
+
+########################################
+# Variables de entorno y secretos — NUNCA subir
+########################################
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+key.properties
+**/key.properties
+credentials.json
+service-account*.json
+*.secret
+secrets/
+
+########################################
+# Configuración local de Claude Code (no forma parte del proyecto)
+########################################
+.claude/
+
+########################################
+# Node.js / backend (Express)
+########################################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+coverage/
+
+########################################
+# Flutter / Dart (concertx_movil, concertx_wearable)
+########################################
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+**/*.g.dart.bak
+app.*.symbols
+app.*.map.json
+
+# Android
+**/android/.gradle/
+**/android/local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/*.iml
+**/*.ipr
+**/*.iws
+
+# iOS / macOS (por si algún día se compila)
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/.last_build_id
+**/macos/Pods/
+
+########################################
+# Editores / SO
+########################################
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+
+########################################
+# Reportes y PDFs generados localmente (no forman parte del código)
+########################################
+# (déjalos comentados si sí los quieres versionar)
+# Manual_Usuario_ACTUAL.pdf
+# Reporte_Configuracion_*.pdf
