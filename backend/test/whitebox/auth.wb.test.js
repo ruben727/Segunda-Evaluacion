@@ -85,13 +85,14 @@ describe('AUTH register: caminos de persistencia', () => {
     expect(r.body).toEqual({ error: 'Error interno del servidor' });
   });
 
-  test('WB-AUTH-R16 [DEFECTO SA-01] el correo NO se normaliza: se busca y se guarda con espacios/mayúsculas', async () => {
+  // SA-01 / DEF-02 corregido en la P13: ahora la prueba exige el correo normalizado (regresión).
+  test('WB-AUTH-R16 [SA-01 corregido en P13] el correo se busca y se guarda sin espacios y en minúsculas', async () => {
     usuarioModel.buscarPorCorreo.mockResolvedValue(null);
     usuarioModel.crear.mockImplementation(async (u) => ({ id: 78, nombre: u.nombre, correo: u.correo, tipo: 'usuario' }));
     const r = await request(app).post('/api/auth/register').send({ ...valido, correo: '  Prueba_WB_01@Test.com ' });
     expect(r.status).toBe(201); // pasa la validación porque el regex se prueba con trim()
-    expect(usuarioModel.buscarPorCorreo).toHaveBeenCalledWith('  Prueba_WB_01@Test.com ');
-    expect(usuarioModel.crear.mock.calls[0][0].correo).toBe('  Prueba_WB_01@Test.com '); // observado: sin trim ni minúsculas
+    expect(usuarioModel.buscarPorCorreo).toHaveBeenCalledWith('prueba_wb_01@test.com');
+    expect(usuarioModel.crear.mock.calls[0][0].correo).toBe('prueba_wb_01@test.com');
   });
 
   test('WB-AUTH-R17 JSON mal formado → 400 (entity.parse.failed)', async () => {

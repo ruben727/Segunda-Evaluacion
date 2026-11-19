@@ -67,21 +67,33 @@ class ApiService {
 
   Uri _uri(String path) => Uri.parse('${ApiConstants.baseUrl}$path');
 
+  /// P13: antes no tenía timeout (riesgo pendiente de la P12, prueba I-05). Ahora usa [_enviar]:
+  /// 15 s como máximo y un mensaje para el usuario si no hay red o el servidor no responde.
   Future<List<Concierto>> getConciertos() async {
-    final res = await _http.get(_uri(ApiConstants.conciertos), headers: await _headers());
-    if (res.statusCode != 200) {
-      throw Exception('No se pudieron cargar los conciertos');
-    }
-    final lista = jsonDecode(res.body) as List<dynamic>;
-    return lista.map((e) => Concierto.fromJson(e as Map<String, dynamic>)).toList();
+    final data = await _conMensaje(
+      () => _enviar(() async => _http.get(_uri(ApiConstants.conciertos), headers: await _headers()), 200),
+      'No se pudieron cargar los conciertos',
+    );
+    return (data as List<dynamic>).map((e) => Concierto.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<Concierto> getConciertoById(String id) async {
-    final res = await _http.get(_uri(ApiConstants.concierto(id)), headers: await _headers());
-    if (res.statusCode != 200) {
-      throw Exception('No se pudo cargar el concierto');
+    final data = await _conMensaje(
+      () => _enviar(() async => _http.get(_uri(ApiConstants.concierto(id)), headers: await _headers()), 200),
+      'No se pudo cargar el concierto',
+    );
+    return Concierto.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// Si el servidor respondió con un código inesperado, muestra [mensaje] en lugar del texto del
+  /// backend; los errores de red o de timeout conservan su propio mensaje.
+  Future<dynamic> _conMensaje(Future<dynamic> Function() peticion, String mensaje) async {
+    try {
+      return await peticion();
+    } on ApiException catch (e) {
+      if (e.statusCode == null) rethrow;
+      throw ApiException(e.statusCode, mensaje);
     }
-    return Concierto.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
 
   Future<Diseno> createDiseno({

@@ -29,6 +29,8 @@ function sinPassword(usuario) {
   return resto;
 }
 
+const normalizarCorreo = (correo) => String(correo).trim().toLowerCase();
+
 async function register(req, res, next) {
   try {
     const { nombre, correo, telefono, password } = req.body;
@@ -41,7 +43,9 @@ async function register(req, res, next) {
     if (String(nombre).trim().length < 3) {
       return res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres' });
     }
-    if (!EMAIL_REGEX.test(String(correo).trim())) {
+    // P13 (DEF-02): el correo se guarda y se busca normalizado (sin espacios y en minúsculas).
+    const correoNormalizado = normalizarCorreo(correo);
+    if (!EMAIL_REGEX.test(correoNormalizado)) {
       return res.status(400).json({ error: 'Correo inválido' });
     }
     if (password.length > PASSWORD_MAX) {
@@ -59,13 +63,13 @@ async function register(req, res, next) {
       }
     }
 
-    const existente = await usuarioModel.buscarPorCorreo(correo);
+    const existente = await usuarioModel.buscarPorCorreo(correoNormalizado);
     if (existente) {
       return res.status(409).json({ error: 'Ya existe una cuenta con ese correo' });
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    const usuario = await usuarioModel.crear({ nombre, correo, telefono, passwordHash });
+    const usuario = await usuarioModel.crear({ nombre: String(nombre).trim(), correo: correoNormalizado, telefono, passwordHash });
     const token = firmarToken(usuario);
 
     res.status(201).json({ token, user: usuario });
@@ -89,7 +93,7 @@ async function login(req, res, next) {
       return res.status(401).json({ error: MENSAJE_LOGIN_GENERICO });
     }
 
-    const usuario = await usuarioModel.buscarPorCorreo(String(correo).trim());
+    const usuario = await usuarioModel.buscarPorCorreo(normalizarCorreo(correo));
     if (!usuario) {
       return res.status(401).json({ error: MENSAJE_LOGIN_GENERICO });
     }

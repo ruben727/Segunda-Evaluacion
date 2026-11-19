@@ -12,8 +12,9 @@ async function crear({ nombre, correo, telefono, passwordHash }) {
   return rows[0];
 }
 
+// P13 (DEF-02): sin distinguir mayúsculas, para que también entren las cuentas creadas antes de normalizar.
 async function buscarPorCorreo(correo) {
-  const { rows } = await db.query('SELECT * FROM usuarios WHERE correo = $1', [correo]);
+  const { rows } = await db.query('SELECT * FROM usuarios WHERE lower(correo) = lower($1)', [correo]);
   return rows[0] || null;
 }
 

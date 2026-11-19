@@ -10,6 +10,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:concertx_movil/core/models/concierto.dart';
 import 'package:concertx_movil/core/services/api_service.dart';
 import 'package:concertx_movil/core/services/auth_service.dart';
 import 'package:fake_async/fake_async.dart';
@@ -103,13 +104,20 @@ void main() {
     expect(inc.id, '1');
   });
 
-  test('WB-API-08 (SA-02) servidor que nunca responde: tras 5 min simulados la petición sigue pendiente (no hay timeout)', () {
+  // P11 documentó que la petición seguía pendiente tras 5 min (SA-02). Corregido en la P13:
+  // la prueba ahora verifica el comportamiento correcto (timeout de 15 s) para evitar regresiones.
+  test('WB-API-08 (SA-02, corregido en P13) servidor que nunca responde: la petición termina a los 15 s con mensaje', () {
     fakeAsync((async) {
       handler = (_) => Completer<http.Response>().future;
-      var terminada = false;
-      api.getConciertos().then((_) => terminada = true, onError: (_) => terminada = true);
-      async.elapse(const Duration(minutes: 5));
-      expect(terminada, isFalse, reason: 'ApiService no aplica .timeout(); AuthService sí (20 s)');
+      Object? error;
+      api.getConciertos().catchError((Object e) {
+        error = e;
+        return <Concierto>[];
+      });
+      async.elapse(const Duration(seconds: 14));
+      expect(error, isNull);
+      async.elapse(const Duration(seconds: 2));
+      expect(error, isA<ApiException>().having((e) => e.mensaje, 'mensaje', 'El servidor tardó demasiado en responder'));
     });
   });
 }
