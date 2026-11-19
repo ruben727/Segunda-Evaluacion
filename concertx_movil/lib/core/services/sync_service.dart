@@ -28,6 +28,26 @@ class SyncService {
   bool _conectado = false;
   bool get conectado => _conectado;
 
+  /// Único artista cuyo diseño puede cambiarle el color a Concertx TV
+  /// (concierto de prueba fijo de la Smart TV, ver db_concertx.sql). Los
+  /// demás diseños (Bad Bunny, Karol G, Funky, etc.) siguen funcionando
+  /// normal en el teléfono y en el reloj, pero no le mandan nada a la TV.
+  static const String artistaAutorizadoTV = 'Evan Craft';
+
+  String? _artistaActivo;
+
+  /// El [ReproductorProvider] llama esto al iniciar/detener una canción
+  /// para marcar qué artista está sonando ahora mismo (`null` = nada).
+  /// Mientras no coincida con [artistaAutorizadoTV], `enviarEfecto` y
+  /// `enviarCancion` no le mandan nada a la TV.
+  void setArtistaActivo(String? artista) {
+    _artistaActivo = artista;
+  }
+
+  bool get _autorizadoParaTV =>
+      _artistaActivo != null &&
+      _artistaActivo!.trim().toLowerCase() == artistaAutorizadoTV.toLowerCase();
+
   Future<void> conectar() async {
     if (_conectado) return; // ya conectado (instancia compartida) — no abrir otro socket
     _reconectar = true;
@@ -37,7 +57,9 @@ class SyncService {
   Future<void> _abrirSocket() async {
     try {
       _channel = WebSocketChannel.connect(Uri.parse(ApiConstants.wsUrl));
-      await _channel!.ready;
+      // Sin límite, si la TV/backend local no está encendido esto podía
+      // quedarse esperando mucho tiempo.
+      await _channel!.ready.timeout(const Duration(seconds: 3));
       _conectado = true;
       _channel!.sink.add(jsonEncode({'type': 'phone_connect'}));
 
@@ -74,13 +96,21 @@ class SyncService {
 
   /// Avisa a la TV que el efecto de luces activo cambió (color hex, ej.
   /// "#3B82F6"). Se usa cuando llega un dato nuevo del reloj (BLE/HTTP).
+  ///
+  /// Siempre actualiza [efectoStream] (para la propia UI del teléfono),
+  /// pero solo se lo manda a la TV si el diseño activo es el de
+  /// [artistaAutorizadoTV] — ver [setArtistaActivo].
   void enviarEfecto(String colorHex, {String? nombre}) {
     final nombreFinal = nombre ?? _nombresColor[colorHex.toUpperCase()] ?? colorHex;
     _efectoController.add(colorHex);
+    if (!_autorizadoParaTV) return;
     _enviar({'type': 'effect_update', 'color': colorHex, 'nombre': nombreFinal});
   }
 
+  /// Igual que [enviarEfecto]: solo llega a la TV si el diseño activo es
+  /// el de [artistaAutorizadoTV].
   void enviarCancion(String titulo, String artista, int duracionSeg) {
+    if (!_autorizadoParaTV) return;
     _enviar({
       'type': 'song_update',
       'titulo': titulo,

@@ -1,0 +1,83 @@
+# Prácticas 13 y 14 – Integración continua de Concertx.
+# Se ejecuta en cada push y en cada pull request. Dos trabajos en paralelo:
+#   1) App móvil Flutter (concertx_movil): dependencias, análisis estático y pruebas.
+#   2) Backend Express (backend): dependencias, lint (ESLint) y pruebas Jest con cobertura.
+# Las pruebas de test/p12 no se ejecutan aquí: llaman a la API de producción (Vercel) y crean usuarios.
+name: CI Concertx
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app-flutter:
+    name: App móvil (Flutter) – análisis y pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: concertx_movil
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.9
+          cache: true
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Análisis estático (flutter analyze)
+        run: flutter analyze --no-fatal-infos
+
+      - name: Pruebas unitarias, de integración y de persistencia
+        run: |
+          flutter test test/*.dart test/whitebox test/p13 \
+            --reporter expanded \
+            --file-reporter json:resultados_flutter.json
+
+      - name: Guardar resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-flutter
+          path: concertx_movil/resultados_flutter.json
+
+  backend:
+    name: Backend (Node.js) – lint y pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint (ESLint)
+        run: npx eslint .
+
+      - name: Pruebas Jest con cobertura
+        run: npx jest --coverage --ci
+
+      - name: Guardar cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-backend
+          path: backend/coverage/coverage-summary.json

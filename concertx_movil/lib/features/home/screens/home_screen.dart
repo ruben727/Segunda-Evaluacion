@@ -6,6 +6,7 @@ import '../../../core/providers/wearable_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/bottom_nav_bar.dart';
 import '../../../shared/widgets/salud_mini_card.dart';
+import '../widgets/agregar_widget_card.dart';
 import '../widgets/concert_card.dart';
 import '../widgets/sync_status_banner.dart';
 
@@ -18,7 +19,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
-  String _query = '';
 
   @override
   void initState() {
@@ -41,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final conciertoProvider = context.watch<ConciertoProvider>();
     final wearableProvider = context.watch<WearableProvider>();
-    final conciertos = conciertoProvider.searchConciertos(_query);
+    final conciertos = conciertoProvider.conciertos;
 
     return Scaffold(
       body: SafeArea(
@@ -66,12 +66,16 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 16),
               const SaludMiniCard(),
               const SizedBox(height: 20),
+              const AgregarWidgetCard(),
               TextField(
                 controller: _searchController,
-                onChanged: (v) => setState(() => _query = v),
+                // Abre el buscador difuso (tolera errores de escritura)
+                // en lugar de filtrar la lista por coincidencia exacta.
+                readOnly: true,
+                onTap: () => context.push('/buscar'),
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Buscar artista o estadio...',
+                  hintText: 'Buscar artista, canción o estadio...',
                   prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
                   filled: true,
                   fillColor: AppColors.navyMid,

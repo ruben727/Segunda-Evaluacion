@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import '../../core/providers/wearable_provider.dart';
 import '../../core/theme/app_theme.dart';
 
-/// Tarjeta compacta "Tu salud": ritmo cardiaco y oxígeno en sangre que
-/// llegan del reloj en tiempo real. Se usa arriba del Home y arriba del
-/// reproductor de canciones.
+/// Tarjeta compacta "Tu salud": ritmo cardiaco, oxígeno en sangre y
+/// calorías quemadas que llegan del reloj en tiempo real. Se usa arriba
+/// del Home y arriba del reproductor de canciones.
 class SaludMiniCard extends StatelessWidget {
   const SaludMiniCard({super.key});
 
@@ -50,6 +50,15 @@ class SaludMiniCard extends StatelessWidget {
               '${data.oxigeno}%',
               style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
             ),
+            if (data.calorias != null) ...[
+              const SizedBox(width: 14),
+              const Icon(Icons.local_fire_department, size: 15, color: AppColors.blue),
+              const SizedBox(width: 4),
+              Text(
+                '${data.calorias} kcal',
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ],
           ],
         ],
       ),

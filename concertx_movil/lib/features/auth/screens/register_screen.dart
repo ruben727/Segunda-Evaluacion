@@ -1,9 +1,12 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/validadores.dart';
 
 /// Texto completo del Aviso de Privacidad mostrado en el registro.
 const String _avisoPrivacidadTexto = '''
@@ -53,9 +56,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _aceptaPrivacidad = false;
 
   late final TapGestureRecognizer _tapAvisoPrivacidad;
-
-  final _emailRegExp = RegExp(r'^[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}$');
-  final _passwordRegExp = RegExp(r'^(?=.*[A-Z])(?=.*\d).{8,}$');
 
   @override
   void initState() {
@@ -134,7 +134,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       context.go('/home');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.errorMessage ?? 'No se pudo crear la cuenta')),
+        SnackBar(content: Text(auth.errorMessage ?? MensajesAuth.registroFallido)),
       );
     }
   }
@@ -181,7 +181,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hintText: 'Nombre completo',
                     prefixIcon: Icon(Icons.person_outline, color: AppColors.textSecondary),
                   ),
-                  validator: (v) => (v == null || v.trim().length < 3) ? 'Ingresa tu nombre completo' : null,
+                  validator: Validadores.nombre,
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
@@ -192,8 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hintText: 'Correo electrónico',
                     prefixIcon: Icon(Icons.email_outlined, color: AppColors.textSecondary),
                   ),
-                  validator: (v) =>
-                      (v == null || !_emailRegExp.hasMatch(v.trim())) ? 'Correo inválido' : null,
+                  validator: Validadores.email,
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
@@ -204,18 +203,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hintText: 'Teléfono',
                     prefixIcon: Icon(Icons.phone_outlined, color: AppColors.textSecondary),
                   ),
-                  validator: (v) {
-                    final digitos = (v ?? '').replaceAll(RegExp(r'\D'), '');
-                    if (digitos.length < 10 || digitos.length > 13) {
-                      return 'El teléfono debe tener entre 10 y 13 dígitos';
-                    }
-                    return null;
-                  },
+                  validator: Validadores.telefono,
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: !_passwordVisible,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  inputFormatters: [LengthLimitingTextInputFormatter(Validadores.passwordMax)],
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Contraseña',
@@ -228,14 +224,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
                     ),
                   ),
-                  validator: (v) => (v == null || !_passwordRegExp.hasMatch(v))
-                      ? 'Mínimo 8 caracteres, con mayúscula y número'
-                      : null,
+                  validator: Validadores.passwordRegistro,
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _confirmarController,
                   obscureText: !_confirmarVisible,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  inputFormatters: [LengthLimitingTextInputFormatter(Validadores.passwordMax)],
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Confirmar contraseña',

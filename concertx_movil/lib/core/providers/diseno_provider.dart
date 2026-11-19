@@ -35,6 +35,8 @@ class DisenoProvider extends ChangeNotifier {
         nombre: nombre,
         configuraciones: configuraciones.map((c) => c.toJson()).toList(),
       );
+      // Para que el nuevo diseño aparezca ya en Conciertos → "Mis diseños".
+      fetchMisDisenos();
       return true;
     } catch (e) {
       errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -74,6 +76,28 @@ class DisenoProvider extends ChangeNotifier {
       return true;
     } catch (_) {
       return false;
+    }
+  }
+
+  /// Devuelve null si salió bien, o el mensaje de error a mostrar.
+  Future<String?> renombrarDiseno(String id, String nombre) async {
+    try {
+      await _apiService.updateDiseno(id: id, nombre: nombre);
+      await fetchMisDisenos();
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    }
+  }
+
+  /// Devuelve null si salió bien, o el mensaje de error a mostrar.
+  Future<String?> eliminarDiseno(String id) async {
+    try {
+      await _apiService.deleteDiseno(id);
+      await Future.wait([fetchMisDisenos(), fetchMisEventos()]);
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
     }
   }
 

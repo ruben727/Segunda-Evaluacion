@@ -111,6 +111,7 @@ class WearableProvider extends ChangeNotifier {
         WearableData(
           ritmo: (data['ritmo'] as num).toInt(),
           oxigeno: (data['oxigeno'] as num?)?.toInt() ?? 98,
+          calorias: (data['calorias'] as num?)?.toInt(),
           colorHex: data['efecto_color'] as String,
           vibracion: data['vibracion'] as bool? ?? false,
         ),

@@ -53,7 +53,7 @@ async function ultimos(req, res, next) {
 // POST público: el reloj publica aquí cada lectura simulada (sin login).
 async function actualizarSimulacion(req, res, next) {
   try {
-    const { ritmo, oxigeno, efecto_color, vibracion } = req.body;
+    const { ritmo, oxigeno, calorias, efecto_color, vibracion } = req.body;
 
     if (ritmo === undefined || !efecto_color) {
       return res.status(400).json({ error: 'ritmo y efecto_color son obligatorios' });
@@ -62,6 +62,7 @@ async function actualizarSimulacion(req, res, next) {
     ultimaSimulacion = {
       ritmo,
       oxigeno: oxigeno ?? null,
+      calorias: calorias ?? null,
       efecto_color,
       vibracion: !!vibracion,
       actualizado_en: new Date().toISOString(),

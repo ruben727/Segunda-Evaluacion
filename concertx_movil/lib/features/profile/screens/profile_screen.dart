@@ -7,8 +7,10 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/models/mi_diseno.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/diseno_provider.dart';
+import '../../../core/providers/incidencia_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/bottom_nav_bar.dart';
+import '../../home/widgets/agregar_widget_card.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -23,6 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DisenoProvider>().fetchMisDisenos();
+      context.read<AuthProvider>().refrescarPerfil();
     });
   }
 
@@ -61,6 +64,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   usuario?.correo ?? '',
                   style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                 ),
+                if (usuario?.esStaff ?? false) ...[
+                  const SizedBox(height: 8),
+                  _Badge(text: usuario!.esAdmin ? 'ADMINISTRADOR' : 'AGENTE'),
+                ],
                 const SizedBox(height: 14),
                 OutlinedButton(
                   onPressed: () {},
@@ -95,6 +102,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: _MiDisenoCard(diseno: d),
                 )),
           const SizedBox(height: 20),
+          if (usuario?.esStaff ?? false)
+            _SettingsRow(
+              icon: Icons.admin_panel_settings_outlined,
+              label: usuario!.esAdmin ? 'Panel de administrador' : 'Panel de agente',
+              trailing: _Badge(text: 'TICKETS'),
+              onTap: () => context.push('/incidencias/gestion'),
+            ),
+          _SettingsRow(
+            icon: Icons.report_problem_outlined,
+            label: 'Reportar incidencia',
+            onTap: () => context.push('/incidencias/reportar'),
+          ),
+          _SettingsRow(
+            icon: Icons.assignment_outlined,
+            label: 'Mis incidencias',
+            onTap: () => context.push('/incidencias/mias'),
+          ),
+          _SettingsRow(
+            icon: Icons.widgets_outlined,
+            label: 'Widget en pantalla principal',
+            onTap: () => agregarWidgetPantallaPrincipal(context),
+          ),
+          _SettingsRow(
+            icon: Icons.forum_outlined,
+            label: 'Mensajes entre dispositivos',
+            onTap: () => context.push('/mensajes'),
+          ),
           _SettingsRow(icon: Icons.notifications_outlined, label: 'Notificaciones', onTap: () {}),
           _SettingsRow(icon: Icons.shield_outlined, label: 'Privacidad y seguridad', onTap: () {}),
           _SettingsRow(
@@ -113,6 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 6),
           InkWell(
             onTap: () async {
+              context.read<IncidenciaProvider>().limpiarEstadoLocal();
               await context.read<AuthProvider>().logout();
               if (context.mounted) context.go('/login');
             },

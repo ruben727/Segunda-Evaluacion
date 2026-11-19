@@ -4,6 +4,17 @@ const env = require('../config/env');
 const usuarioModel = require('../models/usuario.model');
 
 const SALT_ROUNDS = 10;
+const EMAIL_REGEX = /^[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}$/;
+const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+// Práctica 5: mismo rango que validan login_screen y register_screen.
+const PASSWORD_MIN = 8;
+const PASSWORD_MAX = 64;
+const MENSAJE_LOGIN_GENERICO = 'Correo o contraseña incorrectos';
+
+/** true si el valor es string y tiene algo más que espacios. */
+function tieneTexto(valor) {
+  return typeof valor === 'string' && valor.trim().length > 0;
+}
 
 function firmarToken(usuario) {
   return jwt.sign(
@@ -22,8 +33,30 @@ async function register(req, res, next) {
   try {
     const { nombre, correo, telefono, password } = req.body;
 
-    if (!nombre || !correo || !password) {
+    if (!tieneTexto(nombre) || !tieneTexto(correo) || !tieneTexto(password)) {
       return res.status(400).json({ error: 'nombre, correo y password son obligatorios' });
+    }
+
+    // Mismas reglas que valida register_screen.dart en la app.
+    if (String(nombre).trim().length < 3) {
+      return res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres' });
+    }
+    if (!EMAIL_REGEX.test(String(correo).trim())) {
+      return res.status(400).json({ error: 'Correo inválido' });
+    }
+    if (password.length > PASSWORD_MAX) {
+      return res.status(400).json({ error: `La contraseña no puede superar ${PASSWORD_MAX} caracteres` });
+    }
+    if (!PASSWORD_REGEX.test(password)) {
+      return res.status(400).json({
+        error: 'La contraseña debe tener al menos 8 caracteres, una mayúscula y un número',
+      });
+    }
+    if (telefono) {
+      const digitos = String(telefono).replace(/\D/g, '');
+      if (digitos.length < 10 || digitos.length > 13) {
+        return res.status(400).json({ error: 'El teléfono debe tener entre 10 y 13 dígitos' });
+      }
     }
 
     const existente = await usuarioModel.buscarPorCorreo(correo);
@@ -45,18 +78,25 @@ async function login(req, res, next) {
   try {
     const { correo, password } = req.body;
 
-    if (!correo || !password) {
+    if (!tieneTexto(correo) || !tieneTexto(password)) {
       return res.status(400).json({ error: 'correo y password son obligatorios' });
     }
 
-    const usuario = await usuarioModel.buscarPorCorreo(correo);
+    // Fuera de rango no puede ser una contraseña válida: se responde igual
+    // que una contraseña incorrecta para no dar pistas, y se evita pasarle
+    // a bcrypt entradas enormes.
+    if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX) {
+      return res.status(401).json({ error: MENSAJE_LOGIN_GENERICO });
+    }
+
+    const usuario = await usuarioModel.buscarPorCorreo(String(correo).trim());
     if (!usuario) {
-      return res.status(401).json({ error: 'Correo o contraseña incorrectos' });
+      return res.status(401).json({ error: MENSAJE_LOGIN_GENERICO });
     }
 
     const passwordValida = await bcrypt.compare(password, usuario.password_hash);
     if (!passwordValida) {
-      return res.status(401).json({ error: 'Correo o contraseña incorrectos' });
+      return res.status(401).json({ error: MENSAJE_LOGIN_GENERICO });
     }
 
     const token = firmarToken(usuario);

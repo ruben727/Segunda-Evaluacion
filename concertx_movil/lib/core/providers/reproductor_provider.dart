@@ -27,6 +27,11 @@ class ReproductorProvider extends ChangeNotifier {
   Timer? _timer;
   bool get reproduciendo => _timer != null;
 
+  /// Empieza la canción DE INMEDIATO (estado, cuenta regresiva y UI) y
+  /// avisa al reloj y a la TV en segundo plano. Antes se esperaba a la red
+  /// (POST a Vercel + WebSocket a la TV) antes de arrancar, lo que hacía
+  /// que la canción y las opciones de pantalla completa/lámpara tardaran
+  /// varios segundos, o no aparecieran si la red fallaba.
   Future<void> reproducir({
     required String cancionId,
     required String titulo,
@@ -42,18 +47,6 @@ class ReproductorProvider extends ChangeNotifier {
     colorActual = colorHex;
     duracionTotal = duracionSeg;
     segundosRestantes = duracionSeg;
-    notifyListeners();
-
-    await _apiService.enviarComandoWearable(
-      colorHex: colorHex,
-      duracionSeg: duracionSeg,
-      cancionTitulo: titulo,
-    );
-    // Por si el socket compartido todavía no se había abierto (ej. se
-    // reprodujo una canción sin haber pasado antes por Home): conectar()
-    // no hace nada si ya está conectado.
-    await _syncService.conectar();
-    _syncService.enviarCancion(titulo, artista, duracionSeg);
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       segundosRestantes--;
@@ -63,6 +56,39 @@ class ReproductorProvider extends ChangeNotifier {
         notifyListeners();
       }
     });
+    notifyListeners();
+
+    unawaited(_avisarDispositivos(cancionId, titulo, colorHex, duracionSeg, artista));
+  }
+
+  /// Avisos de red de [reproducir]. Si fallan, la canción sigue sonando en
+  /// el teléfono; si mientras tanto se cambió de canción, no se manda el
+  /// aviso viejo a la TV.
+  Future<void> _avisarDispositivos(
+    String id,
+    String titulo,
+    String colorHex,
+    int duracionSeg,
+    String artista,
+  ) async {
+    try {
+      await _apiService.enviarComandoWearable(
+        colorHex: colorHex,
+        duracionSeg: duracionSeg,
+        cancionTitulo: titulo,
+      );
+    } catch (_) {
+      // Sin red o backend caído: el reloj no cambia, pero el teléfono sí.
+    }
+    // Por si el socket compartido todavía no se había abierto (ej. se
+    // reprodujo una canción sin haber pasado antes por Home): conectar()
+    // no hace nada si ya está conectado.
+    await _syncService.conectar();
+    if (cancionId != id) return; // ya suena otra canción
+    // Marca qué artista está sonando: la TV solo se actualiza cuando es
+    // el diseño de SyncService.artistaAutorizadoTV (ver sync_service.dart).
+    _syncService.setArtistaActivo(artista);
+    _syncService.enviarCancion(titulo, artista, duracionSeg);
   }
 
   /// Repite la canción que está sonando ahora mismo desde el inicio.
@@ -87,8 +113,12 @@ class ReproductorProvider extends ChangeNotifier {
     artistaActual = null;
     colorActual = null;
     segundosRestantes = 0;
+    // Sin canción activa, ningún dato del reloj debe seguir llegándole a
+    // la TV hasta que se reproduzca de nuevo el diseño autorizado.
+    _syncService.setArtistaActivo(null);
     notifyListeners();
-    await _apiService.detenerComandoWearable();
+    // Avisar al reloj en segundo plano: la UI ya se actualizó.
+    unawaited(_apiService.detenerComandoWearable().catchError((_) {}));
   }
 
   String get tiempoRestanteFormateado {

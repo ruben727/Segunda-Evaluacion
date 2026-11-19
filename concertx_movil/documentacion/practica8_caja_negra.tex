@@ -1,0 +1,169 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------- Idioma, fuente y márgenes ----------
+% Funciona con XeLaTeX/LuaLaTeX (usa Arial) y con pdfLaTeX (usa Helvetica,
+% que tiene las mismas medidas que Arial).
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage{helvet}
+  \renewcommand{\familydefault}{\sfdefault}
+\else
+  \usepackage{fontspec}
+  \setmainfont{Arial}
+\fi
+\usepackage[spanish]{babel}
+
+\usepackage[hidelinks]{hyperref}
+
+\setlength{\parskip}{8pt}
+\setlength{\parindent}{0pt}
+\linespread{1.15}
+
+% ---------- Portada ----------
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+
+  {\large Práctica 8}
+
+  \vspace{2.5cm}
+
+  {\Huge\bfseries Evaluación de calidad de software mediante pruebas de caja negra}
+
+  \vspace{1.2cm}
+
+  {\Large Proyecto: \textbf{Concertx}}
+
+  \vspace{3cm}
+
+  {\large
+  \begin{tabular}{rl}
+    \textbf{Alumno:} & Rubén Mendoza Dorantes \\[6pt]
+    \textbf{Grupo:} & IDGS16 \\[6pt]
+    \textbf{Maestro:} & Manuel Contreras Castillo \\[6pt]
+    \textbf{Fecha:} & 24/10/2026
+  \end{tabular}
+  }
+
+  \vfill
+\end{titlepage}
+
+% ---------- Contenido ----------
+
+\section*{Objetivo}
+
+Evaluar la calidad de la aplicación móvil \textbf{Concertx} con pruebas de caja negra. Esto significa revisar la aplicación desde el punto de vista del usuario: qué datos se escriben, qué reglas deben cumplir, qué debe mostrar la aplicación como resultado y qué errores debe manejar. Al final se decide si la entrega se puede aceptar o si conviene rechazarla.
+
+\section*{Descripción del proyecto}
+
+Concertx es una aplicación para sincronizar efectos de luces en conciertos. El usuario se registra, revisa los conciertos disponibles y crea un diseño de efectos para cada canción. Al terminar, la app genera un código de evento. Otras personas pueden usar ese código para unirse al concierto y ver los colores en su reloj inteligente y en la pantalla del recinto.
+
+La aplicación está hecha con Flutter, que es un framework para crear apps móviles con el lenguaje Dart. Se comunica con un servidor (backend) hecho con Express y alojado en Vercel. El token de sesión, que es el dato que mantiene iniciada la sesión del usuario, se guarda de forma segura en el teléfono.
+
+Las principales partes de la aplicación son: el inicio de sesión y el registro; la lista de conciertos y su búsqueda; la creación de diseños de efectos; la unión a un evento con código; la pestaña de conciertos, donde se ven los eventos y los diseños propios; el reproductor de canciones; el perfil del usuario; y el módulo del reloj inteligente, que solo se identificó pero no se analizó a fondo.
+
+\section*{Método}
+
+Primero se revisó el código fuente para conocer todas las funciones. Después, para cada función se identificaron las entradas que recibe, las reglas que deben cumplir esas entradas, los resultados que se esperan y los errores que el sistema debe manejar. A cada requisito se le asignó un identificador único, que va de RF-01 a RF-13, y se definió un criterio de aceptación que se pueda medir.
+
+Para revisar las validaciones de correo y contraseña, que son las partes más delicadas de los formularios, se probaron los mismos patrones del código con Python. También se revisó una captura del emulador de Android, donde la pantalla de inicio carga la lista de conciertos correctamente.
+
+Es importante decir que esta revisión fue estática, es decir, se leyó el código pero no se ejecutó la aplicación. Tampoco se ejecutaron los comandos \texttt{flutter analyze} y \texttt{flutter test}, ni se probó el servidor. Por eso, varias pruebas quedan pendientes y se indican en el documento.
+
+\section*{Requisitos verificables}
+
+En total se documentan trece requisitos. Cuatro son de operaciones principales, tres de validaciones, tres de persistencia o consistencia de datos, dos de navegación y permisos, y uno de manejo de errores.
+
+\subsection*{Operaciones principales}
+
+\textbf{RF-01. Inicio de sesión.} El usuario escribe su correo y su contraseña. Si los datos son correctos, la aplicación lo lleva a la pantalla de inicio y guarda su sesión. Si son incorrectos, debe aparecer un mensaje que lo explique. El criterio de aceptación es que todos los inicios de sesión válidos entren a la aplicación y que ningún dato inválido permita el acceso. Este requisito se puede verificar leyendo el código, aunque falta ejecutarlo. Hay un problema: si se deja la contraseña vacía, la aplicación no muestra ningún mensaje (defecto D-03).
+
+\textbf{RF-02. Registro de cuenta.} Para crear una cuenta se piden nombre, correo, teléfono, contraseña, confirmación de la contraseña y la aceptación del aviso de privacidad. El nombre debe tener al menos tres caracteres, el correo debe ser válido, el teléfono debe tener entre diez y trece dígitos, la contraseña debe cumplir las reglas del RF-06 y la confirmación debe coincidir. Si todo es correcto, la cuenta se crea y el usuario entra a la aplicación. Si falla algo, se muestra un mensaje. Este requisito se puede verificar en el código, pero la detección de correos repetidos depende del servidor.
+
+\textbf{RF-03. Crear diseño de efectos.} El usuario elige un concierto y, para cada canción, un color y si quiere que el reloj vibre. Al generar el diseño, la aplicación muestra la pantalla de diseño creado con un código de seis caracteres, y el diseño aparece en la pestaña de conciertos, en la sección de mis diseños. El botón se desactiva mientras se envía la información, para evitar que se mande dos veces. Este requisito está incompleto, porque la aplicación no exige que el diseño tenga al menos una canción configurada (defecto D-08).
+
+\textbf{RF-04. Unirse a un evento con código.} El usuario escribe el código de seis caracteres. La aplicación revisa primero que el código exista y, si es válido, muestra el código en verde y permite elegir zona, fila y asiento. Al confirmar, el usuario se une al evento y regresa a la pantalla de inicio. Si el código no existe, no se puede continuar. Este requisito se puede verificar en el código. Un detalle a mejorar es que, una vez validado el código, no se puede corregir sin salir de la pantalla (defecto D-07).
+
+\subsection*{Validaciones}
+
+\textbf{RF-05. Validación de correo.} El correo debe tener la forma nombre@dominio.extensión, y la extensión debe tener al menos dos letras. Así, \texttt{usuario@gmail.com} y \texttt{x@dominio.co} se aceptan, mientras que \texttt{sin-arroba.com} y \texttt{a@b.c} se rechazan. Sin embargo, al comprobar el patrón se encontró un problema: el correo \texttt{ana.lopez+test@mail.empresa.com.mx} es rechazado, aunque es un correo válido con subdominios. Este requisito no se cumple, y es el defecto más importante de los formularios (D-02).
+
+\textbf{RF-06. Validación de contraseña.} La contraseña debe tener al menos ocho caracteres, una letra mayúscula y un número. Al probarla, \texttt{Abcdefg1} se acepta, mientras que \texttt{abcdefg1}, \texttt{Abcdefgh} y \texttt{Ab1} se rechazan, tal como se espera. Hay un detalle menor: los espacios al final de la contraseña cuentan como caracteres válidos. Este requisito se cumple.
+
+\textbf{RF-07. Validación de nombre y teléfono.} El nombre debe tener al menos tres caracteres sin contar los espacios de los extremos. El teléfono debe tener entre diez y trece dígitos. Así, \texttt{5512345678} y \texttt{55 1234 5678} se aceptan, y \texttt{123456789} se rechaza. El problema es que las letras se quitan en silencio: \texttt{55ab12345678} también se acepta (defecto D-05). Este requisito se cumple, con esa observación.
+
+\subsection*{Persistencia y consistencia de datos}
+
+\textbf{RF-08. Renombrar diseño.} El usuario puede cambiar el nombre de un diseño propio, con un máximo de 160 caracteres. El nombre no puede quedar vacío. Si el cambio es exitoso, aparece el mensaje "Diseño actualizado" y la lista muestra el nombre nuevo. Si el nombre no cambia, no se envía nada al servidor. Este requisito se puede verificar en el código, aunque la forma en que se guarda depende del servidor.
+
+\textbf{RF-09. Eliminar diseño.} Antes de borrar un diseño, la aplicación pide confirmación. Si el usuario cancela, no pasa nada. Si confirma, el diseño desaparece de las listas y el código deja de funcionar. Este requisito está parcialmente comprobado, porque el código deje de ser válido depende del servidor.
+
+\textbf{RF-10. Sesión y cierre de sesión.} El token de sesión se guarda de forma segura. Al abrir la aplicación de nuevo, si hay una sesión guardada, el usuario entra directamente a la pantalla de inicio. Al cerrar sesión, el token se borra y la aplicación regresa a la pantalla de inicio de sesión. Un problema pendiente es que la aplicación no revisa si el token ya venció, por lo que una sesión vencida podría parecer activa (defecto D-09).
+
+\subsection*{Navegación y permisos}
+
+\textbf{RF-11. Protección de pantallas.} Las pantallas de inicio, conciertos, creación de diseños, códigos, reproductor, unirse, perfil y reloj solo se pueden abrir con una sesión iniciada. Si alguien intenta entrar sin sesión, la aplicación lo manda a iniciar sesión. Al revés, si ya tiene sesión, las pantallas de inicio de sesión y registro lo llevan a la pantalla de inicio. Este requisito se cumple en el código, y falta probarlo en el emulador.
+
+\textbf{RF-12. Permisos sobre los diseños.} Cada usuario solo debe poder editar o borrar sus propios diseños. La aplicación solo muestra en "Mis diseños" los diseños del usuario que inició sesión. La protección real debe estar en el servidor, que debería responder con error 403 si alguien intenta modificar un diseño ajeno. Esto no se pudo comprobar, porque se necesitan dos usuarios y acceso al servidor. Tampoco hay pantallas diferentes según el tipo de usuario, así que los roles no se pueden revisar desde la interfaz.
+
+\subsection*{Manejo de errores}
+
+\textbf{RF-13. Mensajes ante errores.} Cuando algo falla, por ejemplo si no hay internet o el servidor responde algo inesperado, el usuario debe ver un mensaje claro en español y la aplicación no debe quedar en un estado incorrecto. En el código se encontraron dos problemas. El primero es que los errores técnicos se pueden mostrar en pantalla de forma poco clara, por ejemplo "FormatUnexpected" (defecto D-04). El segundo es que, si falla el envío de un comando al reloj, la canción queda marcada como activa aunque no haya empezado (defecto D-06). Por eso este requisito no se cumple.
+
+\section*{Respuestas a las preguntas de la práctica}
+
+Respecto a si las funciones corresponden a los requisitos, la mayoría de los flujos existen y funcionan como se espera en el código. Sin embargo, hay botones que aparecen en la pantalla pero no hacen nada, como "Continuar con Google", "Editar perfil" o "Ayuda y soporte" (defecto D-01). También hay datos fijos que no cambian, como el "98\%" de sincronización en el perfil (defecto D-10). Por eso el resultado es parcial.
+
+En cuanto a las operaciones principales, el inicio de sesión, el registro, la creación de diseños, la unión con código, el renombrado y el borrado tienen la lógica que se espera. Falta confirmar el resultado real al ejecutar la aplicación contra el servidor.
+
+Sobre si el sistema rechaza entradas inválidas, la respuesta es parcialmente. Rechaza contraseñas débiles, correos sin arroba y teléfonos cortos. Pero rechaza también correos válidos con subdominios, que es un error importante.
+
+Sobre los defectos en navegación, formularios y mensajes, sí existen algunos. Por ejemplo, al dejar la contraseña vacía el login no muestra ningún mensaje (D-03); el código validado en la pantalla de unirse no se puede corregir (D-07); y el botón "Ver mi diseño" lleva a la pantalla de inicio y no al diseño creado (D-14).
+
+Sobre la consistencia de datos, la aplicación actualiza las listas después de renombrar o borrar un diseño. Sin embargo, la consistencia real depende del servidor, y no se pudo probar. Por eso este punto no se puede verificar todavía.
+
+Sobre los permisos, la pantalla solo muestra los diseños propios, pero el control real debe hacerlo el servidor, y no se pudo comprobar.
+
+Sobre el manejo de errores, la respuesta es insuficiente. Los errores del reproductor y del reloj no se manejan bien (defectos D-06 y D-10).
+
+Sobre si hay defectos que impidan liberar el producto, sí los hay. Son el D-02 y el D-06, que se explican en la conclusión.
+
+Sobre si las evidencias bastan para aceptar o rechazar la entrega, bastan para rechazarla en su estado actual, pero no para aceptarla. Faltan las pruebas ejecutadas en el emulador y las pruebas contra el servidor.
+
+\section*{Defectos encontrados}
+
+Se encontraron catorce defectos. Los más importantes son los siguientes.
+
+El defecto D-02 es de severidad alta. Los correos con subdominios, como \texttt{mail.empresa.com.mx}, son rechazados tanto en el inicio de sesión como en el registro. Esto impide que alguien con correo institucional cree una cuenta. Está en los archivos \texttt{register\_screen.dart} y \texttt{login\_screen.dart}.
+
+El defecto D-06 también es de severidad alta. Si falla la petición que envía el color al reloj, la aplicación ya marcó la canción como activa, pero el temporizador no arranca. El resultado es que la pantalla muestra una canción sonando que en realidad no está sonando. Está en el archivo \texttt{reproductor\_provider.dart}.
+
+El defecto D-13 es de severidad media, pero puede volverse bloqueante según el alcance. La dirección del WebSocket está fija en \texttt{10.0.2.2}, que solo funciona dentro del emulador de Android. En un teléfono físico, la sincronización con la pantalla del recinto no funcionaría. Está en el archivo \texttt{api\_constants.dart}.
+
+Los demás defectos son de severidad media o baja y no impiden la liberación por sí solos. Son los siguientes: botones sin acción (D-01); mensajes técnicos poco claros (D-04); el teléfono que ignora letras sin avisar (D-05); la imposibilidad de corregir el código validado (D-07); la creación de diseños sin canciones (D-08); la falta de revisión de vencimiento del token (D-09); los datos fijos y las llamadas al reloj sin revisar la respuesta (D-10); la búsqueda que no ignora los acentos (D-11); la prueba automática que es solo la plantilla por defecto (D-12); y el botón "Ver mi diseño" que lleva a un lugar equivocado (D-14).
+
+Sobre la prueba automática, vale la pena aclarar algo. El único test del proyecto es la plantilla que trae Flutter por defecto, que solo revisa el texto de la pantalla de inicio. Además, la pantalla de inicio tiene un retraso de dos segundos, lo que podría dejar un temporizador pendiente y hacer que la prueba falle. Esto no se comprobó, porque no se ejecutó el test.
+
+\section*{Requisitos que todavía no se pueden verificar}
+
+Hay requisitos que dependen de otras partes del sistema. Del lado del servidor, faltan revisar: si el correo repetido se rechaza, si un token vencido se rechaza, si la lista de próximos conciertos muestra solo los conciertos futuros, si un usuario no puede modificar diseños ajenos y si un código borrado deja de funcionar.
+
+Del lado de los dispositivos, falta revisar la lectura del reloj por Bluetooth, la sincronización con la pantalla del recinto, la linterna y la pantalla completa. Estas pruebas requieren hardware real.
+
+Por último, faltan ejecutar \texttt{flutter analyze} y \texttt{flutter test}. Hacerlo en el emulador daría una evidencia más sólida.
+
+\section*{Conclusión}
+
+Con lo revisado en el código, no se recomienda aceptar la entrega en su estado actual. Dos defectos impiden la liberación: el D-02, porque usuarios con correo válido en subdominio no pueden registrarse, y el D-06, porque un fallo al enviar un comando al reloj deja la reproducción en un estado incorrecto.
+
+Para aceptar la entrega, habría que corregir esos dos defectos, quitar o terminar los botones que no hacen nada, ejecutar las pruebas de análisis y de test, y completar las pruebas en el emulador y con el servidor para los requisitos que quedaron pendientes.
+
+\section*{Limitaciones}
+
+Esta revisión fue estática, por lo que los resultados de los requisitos RF-01 a RF-04 y RF-08 a RF-13 se basan en la lectura del código y no en la ejecución de la aplicación. No se analizó a detalle el módulo del reloj y la sincronización. La captura del emulador solo confirma que la pantalla de inicio carga la lista de conciertos.
+
+\end{document}

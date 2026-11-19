@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/validadores.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,18 +19,24 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _passwordVisible = false;
   String? _emailError;
-
-  final _emailRegExp = RegExp(r'^[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}$');
+  String? _passwordError;
 
   bool _validarEmail() {
-    final valido = _emailRegExp.hasMatch(_emailController.text.trim());
-    setState(() => _emailError = valido ? null : 'Correo inválido');
-    return valido;
+    final error = Validadores.email(_emailController.text);
+    setState(() => _emailError = error);
+    return error == null;
+  }
+
+  bool _validarPassword() {
+    final error = Validadores.passwordLongitud(_passwordController.text);
+    setState(() => _passwordError = error);
+    return error == null;
   }
 
   Future<void> _submit() async {
     final emailValido = _validarEmail();
-    if (!emailValido || _passwordController.text.isEmpty) return;
+    final passwordValida = _validarPassword();
+    if (!emailValido || !passwordValida) return;
 
     final auth = context.read<AuthProvider>();
     final ok = await auth.login(_emailController.text.trim(), _passwordController.text);
@@ -37,9 +46,22 @@ class _LoginScreenState extends State<LoginScreen> {
       context.go('/home');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.errorMessage ?? 'Correo o contraseña incorrectos')),
+        SnackBar(content: Text(auth.errorMessage ?? MensajesAuth.credencialesIncorrectas)),
       );
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Si se llegó aquí porque la sesión expiró, se avisa una vez.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final aviso = context.read<AuthProvider>().tomarAvisoSesion();
+      if (aviso != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(aviso)));
+      }
+    });
   }
 
   @override
@@ -93,9 +115,16 @@ class _LoginScreenState extends State<LoginScreen> {
               TextField(
                 controller: _passwordController,
                 obscureText: !_passwordVisible,
+                enableSuggestions: false,
+                autocorrect: false,
+                inputFormatters: [LengthLimitingTextInputFormatter(Validadores.passwordMax)],
                 style: const TextStyle(color: Colors.white),
+                onChanged: (_) {
+                  if (_passwordError != null) _validarPassword();
+                },
                 decoration: InputDecoration(
                   hintText: 'Contraseña',
+                  errorText: _passwordError,
                   prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSecondary),
                   suffixIcon: IconButton(
                     icon: Icon(

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/concierto.dart';
 import '../services/api_service.dart';
+import '../services/widget_service.dart';
 
 class ConciertoProvider extends ChangeNotifier {
   final ApiService _apiService;
@@ -18,6 +19,8 @@ class ConciertoProvider extends ChangeNotifier {
 
     try {
       conciertos = await _apiService.getConciertos();
+      // Mantiene al día el widget "Próximo concierto" de la pantalla principal.
+      WidgetService.actualizar(conciertos);
     } catch (e) {
       errorMessage = e.toString().replaceFirst('Exception: ', '');
     } finally {

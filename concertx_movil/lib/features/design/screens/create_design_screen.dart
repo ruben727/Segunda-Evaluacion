@@ -7,6 +7,7 @@ import '../../../core/models/configuracion_luz.dart';
 import '../../../core/providers/diseno_provider.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../concerts/screens/pantalla_color_screen.dart';
 
 class _SongConfig {
   final Cancion cancion;
@@ -239,7 +240,15 @@ class _CreateDesignScreenState extends State<CreateDesignScreen> {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 14),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => PantallaColorScreen.abrir(context, _hexToColor(item.configuracion.colorHex)),
+                  icon: const Icon(Icons.fullscreen, size: 18),
+                  label: const Text('Ver en pantalla completa', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+              const SizedBox(height: 4),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -258,6 +267,12 @@ class _CreateDesignScreenState extends State<CreateDesignScreen> {
         ),
       ),
     );
+  }
+
+  Color _hexToColor(String hex) {
+    var value = hex.replaceAll('#', '');
+    if (value.length == 6) value = 'FF$value';
+    return Color(int.tryParse(value, radix: 16) ?? 0xFF3B82F6);
   }
 }
 

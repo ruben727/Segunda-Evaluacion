@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/usuario.dart';
+import '../services/api_service.dart';
 import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -12,11 +13,20 @@ class AuthProvider extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
+  /// Aviso para mostrar una sola vez en el login (p. ej. sesión expirada).
+  String? avisoSesion;
+
   Future<void> cargarSesion() async {
     isLoading = true;
     notifyListeners();
 
-    final token = await _authService.getToken();
+    var token = await _authService.getToken();
+    if (token != null && _authService.tokenVencido(token)) {
+      // El token guardado ya no sirve: se borra y se pide login de nuevo.
+      await _authService.logout();
+      token = null;
+      avisoSesion = MensajesAuth.sesionExpirada;
+    }
     if (token != null) {
       final payload = _authService.decodePayload(token);
       isLoggedIn = true;
@@ -47,12 +57,25 @@ class AuthProvider extends ChangeNotifier {
       isLoggedIn = true;
       return true;
     } catch (e) {
-      errorMessage = e.toString().replaceFirst('Exception: ', '');
+      errorMessage = _mensajeSeguro(e, MensajesAuth.credencialesIncorrectas);
       return false;
     } finally {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Solo deja pasar los mensajes genéricos de [MensajesAuth]; cualquier
+  /// otro error (texto técnico, excepción inesperada) se cambia por
+  /// [porDefecto].
+  static String _mensajeSeguro(Object error, String porDefecto) {
+    final texto = error.toString().replaceFirst('Exception: ', '');
+    const permitidos = {
+      MensajesAuth.credencialesIncorrectas,
+      MensajesAuth.registroFallido,
+      MensajesAuth.sinConexion,
+    };
+    return permitidos.contains(texto) ? texto : porDefecto;
   }
 
   Future<bool> register({
@@ -76,12 +99,44 @@ class AuthProvider extends ChangeNotifier {
       isLoggedIn = true;
       return true;
     } catch (e) {
-      errorMessage = e.toString().replaceFirst('Exception: ', '');
+      errorMessage = _mensajeSeguro(e, MensajesAuth.registroFallido);
       return false;
     } finally {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Vuelve a leer el perfil del backend (nombre y rol actuales). El JWT
+  /// guardado no trae el nombre y su rol puede estar desactualizado si se
+  /// cambió después del login. Si falla, se conserva lo que había.
+  Future<void> refrescarPerfil() async {
+    if (!isLoggedIn) return;
+    try {
+      final data = await ApiService(authService: _authService).getProfile();
+      currentUser = Usuario.fromJson(data);
+      notifyListeners();
+    } catch (_) {
+      // Sin red o token vencido: se mantiene el usuario local.
+    }
+  }
+
+  /// El backend rechazó el token (401). Cierra la sesión una sola vez
+  /// aunque fallen varias peticiones a la vez; el router manda a /login.
+  Future<void> sesionExpirada() async {
+    if (!isLoggedIn) return;
+    isLoggedIn = false;
+    currentUser = null;
+    avisoSesion = MensajesAuth.sesionExpirada;
+    await _authService.logout();
+    notifyListeners();
+  }
+
+  /// Devuelve el aviso pendiente y lo borra.
+  String? tomarAvisoSesion() {
+    final aviso = avisoSesion;
+    avisoSesion = null;
+    return aviso;
   }
 
   Future<void> logout() async {

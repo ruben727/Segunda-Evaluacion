@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/widget_service.dart';
 import '../../../core/theme/app_theme.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -29,7 +30,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (!mounted) return;
     final logueado = await _authService.isLoggedIn();
     if (!mounted) return;
-    context.go(logueado ? '/home' : '/login');
+    if (!logueado) {
+      context.go('/login');
+      return;
+    }
+    context.go('/home');
+    // Abierta desde el widget: el concierto queda encima de Inicio, para
+    // que "atrás" regrese a Inicio en lugar de cerrar la app.
+    final ruta = WidgetService.tomarRutaPendiente();
+    if (ruta != null) context.push(ruta);
   }
 
   @override

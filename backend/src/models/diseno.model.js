@@ -26,10 +26,7 @@ async function generarCodigoUnico() {
   return codigo;
 }
 
-/**
- * Regla de negocio: solo se permite un diseño por concierto (el primero
- * que lo crea es el único; el resto de asistentes se une con su código).
- */
+/** Indica si un concierto ya tiene al menos un diseño (informativo, ya no bloquea crear otro). */
 async function existeDisenoParaConcierto(concierto_id) {
   const { rows } = await db.query('SELECT id FROM disenos WHERE concierto_id = $1', [concierto_id]);
   return rows[0] || null;
@@ -137,9 +134,18 @@ async function contarConectadosPorDiseno(diseno_id) {
 async function misDisenos(usuarioId) {
   const { rows } = await db.query(
     `SELECT d.id, d.nombre, d.codigo, d.created_at,
-            c.id AS concierto_id, c.artista, c.nombre_tour, c.fecha_inicio
+            c.id AS concierto_id, c.artista, c.nombre_tour, c.fecha_inicio,
+            e.nombre AS estadio_nombre, e.ciudad AS estadio_ciudad,
+            COALESCE(
+              (SELECT array_agg(cl.color_hex ORDER BY ca.numero)
+               FROM configuraciones_luces cl
+               JOIN canciones ca ON ca.id = cl.cancion_id
+               WHERE cl.diseno_id = d.id),
+              '{}'
+            ) AS colores
      FROM disenos d
      JOIN conciertos c ON c.id = d.concierto_id
+     LEFT JOIN estadios e ON e.id = c.estadio_id
      WHERE d.usuario_id = $1
      ORDER BY d.created_at DESC`,
     [usuarioId]
@@ -149,11 +155,13 @@ async function misDisenos(usuarioId) {
     nombre: r.nombre,
     codigo: r.codigo,
     created_at: r.created_at,
+    colores: r.colores,
     concierto: {
       id: r.concierto_id,
       artista: r.artista,
       nombre_tour: r.nombre_tour,
       fecha_inicio: r.fecha_inicio,
+      estadio: { nombre: r.estadio_nombre, ciudad: r.estadio_ciudad },
     },
   }));
 }
@@ -192,10 +200,33 @@ async function misEventos(usuarioId) {
 /** Diseño (con código) de un concierto específico, si ya existe — usado por la Smart TV. */
 async function buscarPorConcierto(concierto_id) {
   const { rows } = await db.query(
-    'SELECT id, codigo, nombre, created_at FROM disenos WHERE concierto_id = $1 LIMIT 1',
+    'SELECT id, codigo, nombre, created_at FROM disenos WHERE concierto_id = $1 ORDER BY created_at ASC LIMIT 1',
     [concierto_id]
   );
   return rows[0] || null;
+}
+
+async function buscarPorId(id) {
+  const { rows } = await db.query(
+    'SELECT id, usuario_id, concierto_id, nombre, codigo, created_at FROM disenos WHERE id = $1',
+    [id]
+  );
+  return rows[0] || null;
+}
+
+async function actualizarNombre(id, nombre) {
+  const { rows } = await db.query(
+    `UPDATE disenos SET nombre = $2 WHERE id = $1
+     RETURNING id, usuario_id, concierto_id, nombre, codigo, created_at`,
+    [id, nombre]
+  );
+  return rows[0] || null;
+}
+
+/** Elimina el diseño; configuraciones_luces y asistentes_evento se borran por ON DELETE CASCADE. */
+async function eliminar(id) {
+  const { rowCount } = await db.query('DELETE FROM disenos WHERE id = $1', [id]);
+  return rowCount > 0;
 }
 
 module.exports = {
@@ -210,4 +241,7 @@ module.exports = {
   misDisenos,
   misEventos,
   buscarPorConcierto,
+  buscarPorId,
+  actualizarNombre,
+  eliminar,
 };
