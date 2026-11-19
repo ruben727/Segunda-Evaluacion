@@ -23,7 +23,7 @@ jobs:
       run:
         working-directory: concertx_movil
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: subosito/flutter-action@v2
         with:
@@ -43,9 +43,31 @@ jobs:
             --reporter expanded \
             --file-reporter json:resultados_flutter.json
 
+      - name: Resumen de pruebas Flutter
+        if: always()
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          nombres, ok, fallidas, ms = {}, 0, [], 0
+          for linea in open('resultados_flutter.json', encoding='utf-8'):
+              e = json.loads(linea)
+              if e.get('type') == 'testStart':
+                  nombres[e['test']['id']] = e['test']['name']
+              elif e.get('type') == 'testDone' and not e.get('hidden'):
+                  if e['result'] == 'success': ok += 1
+                  else: fallidas.append(nombres[e['testID']])
+              elif e.get('type') == 'done':
+                  ms = e['time']
+          print('### App Flutter')
+          print(f'- Aprobadas: {ok}')
+          print(f'- Fallidas: {len(fallidas)}')
+          print(f'- Tiempo de la suite: {ms/1000:.1f} s')
+          for n in fallidas: print(f'  - FALLÓ: {n}')
+          PY
+
       - name: Guardar resultados
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: resultados-flutter
           path: concertx_movil/resultados_flutter.json
@@ -58,11 +80,11 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -73,11 +95,27 @@ jobs:
         run: npx eslint .
 
       - name: Pruebas Jest con cobertura
-        run: npx jest --coverage --ci
+        run: npx jest --coverage --ci --json --outputFile=resultados_jest.json
+
+      - name: Resumen de pruebas Jest
+        if: always()
+        run: |
+          node -e "
+          const r = require('./resultados_jest.json');
+          const fallidas = r.testResults.flatMap(s => s.assertionResults).filter(a => a.status === 'failed');
+          const seg = (Math.max(...r.testResults.map(s => s.endTime)) - r.startTime) / 1000;
+          console.log('### Backend Jest');
+          console.log('- Aprobadas: ' + r.numPassedTests);
+          console.log('- Fallidas: ' + r.numFailedTests);
+          console.log('- Tiempo de la suite: ' + seg.toFixed(1) + ' s');
+          fallidas.forEach(a => console.log('  - FALLÓ: ' + a.fullName));
+          " >> "$GITHUB_STEP_SUMMARY"
 
       - name: Guardar cobertura
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cobertura-backend
-          path: backend/coverage/coverage-summary.json
+          path: |
+            backend/coverage/coverage-summary.json
+            backend/resultados_jest.json
